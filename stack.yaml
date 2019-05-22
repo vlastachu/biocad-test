@@ -1,0 +1,5 @@
+resolver: lts-13.18
+extra-deps:
+- optparse-applicative-simple-1.0.3
+- attoparsec-data-1.0.4.1
+- attoparsec-time-1
