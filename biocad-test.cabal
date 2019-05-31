@@ -20,6 +20,7 @@ library
   build-depends:
     rerebase,
     hasbolt,
+    lens,
     neat-interpolation,
     data-default
   default-extensions:

@@ -1,4 +1,4 @@
-module Biocad.Test.Decoder where
+module Biocad.Test.Decoder(decodeFmap, decodeMolecule, decodeCatalyst, decodeAccelerate, decodeProductFrom) where
 
 import           Biocad.Test.Prelude
 import           Biocad.Test.Data
@@ -8,31 +8,34 @@ decodeFmap :: (MonadIO m, MonadFail m) => (Value -> m b) -> Value -> m [b]
 decodeFmap f (L l) = sequence $ f <$> l
 decodeFmap f _     = fail "not a list"
 
+extractNodeProps :: (Monad m, RecordValue a) => Node -> [Text] -> m [a]
+extractNodeProps (Node _ _ props) propsNames = sequence $ exact . (props !) <$> propsNames
+
+extractRelationshipProps :: (Monad m, RecordValue a) => Relationship -> [Text] -> m [a]
+extractRelationshipProps (Relationship _ _ _ _ props) propsNames = sequence $ exact . (props !) <$> propsNames
+
 decodeMolecule :: (MonadIO m, MonadFail m) => Value -> m Molecule
-decodeMolecule (S (Structure _ [I moleculeId', _, M fieldsMap])) = do
-  let moleculeId = Just moleculeId'
-  iupacName <- exact $ fieldsMap ! "iupacName"
-  smiles    <- exact $ fieldsMap ! "smiles"
+decodeMolecule nodeValue = do
+  node <- exact nodeValue
+  let moleculeId = Just $ nodeIdentity node
+  [iupacName, smiles] <- extractNodeProps node ["iupacName", "smiles"]
   pure Molecule {..}
-decodeMolecule _ = fail "not a structure"
 
 decodeCatalyst :: (MonadIO m, MonadFail m) => Value -> m Catalyst
-decodeCatalyst (S (Structure _ [I catalystId', _, M fieldsMap])) = do
-  let catalystId = Just catalystId'
-  cIupacName <- exact $ fieldsMap ! "iupacName"
-  cSmiles    <- exact $ fieldsMap ! "smiles"
+decodeCatalyst nodeValue = do
+  node <- exact nodeValue
+  let catalystId = Just $ nodeIdentity node
+  [cIupacName, cSmiles] <- extractNodeProps node ["iupacName", "smiles"]
   pure Catalyst {..}
-decodeCatalyst _ = fail "not a structure"
 
 decodeAccelerate :: (MonadIO m, MonadFail m) => Value -> m Accelerate
-decodeAccelerate (S (Structure _ [_, _, _, _, M fieldsMap])) = do
-  temperature <- exact $ fieldsMap ! "temperature"
-  pressure    <- exact $ fieldsMap ! "pressure"
+decodeAccelerate relationshipValue = do
+  relationship <- exact relationshipValue
+  [temperature, pressure] <- extractRelationshipProps relationship ["temperature", "pressure"]
   pure Accelerate {..}
-decodeAccelerate _ = fail "not a structure"
 
 decodeProductFrom :: (MonadIO m, MonadFail m) => Value -> m ProductFrom
-decodeProductFrom (S (Structure _ [_, _, _, _, M fieldsMap])) = do
-  amount <- exact $ fieldsMap ! "amount"
+decodeProductFrom relationshipValue = do
+  relationship <- exact relationshipValue
+  amount <- exact $ relProps relationship ! "amount"
   pure ProductFrom {..}
-decodeProductFrom _ = fail "not a structure"

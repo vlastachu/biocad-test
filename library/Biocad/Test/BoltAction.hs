@@ -30,7 +30,7 @@ getReactionById rid = (lift . decodeReaction) =<< queryP queryText [("rid", I ri
     decodeReaction :: (MonadIO m, MonadFail m) => [Record] -> m (Maybe CompositeReaction)
     decodeReaction (record:_) = do
       let reactionId = Just rid
-      (S (Structure _ [_, _, M fieldsMap])) <- record `at` "reaction"
+      fieldsMap <- fmap nodeProps . exact =<< record `at` "reaction"
       reactionName <- exact $ fieldsMap ! "name"
       inputs <- decodeFmap decodeMolecule =<< record `at` "inputs"
       results' <- decodeFmap decodeMolecule =<< record `at` "outputs"
